@@ -1,3 +1,4 @@
+// Trying out simulated annealing in conjunction with 2-opt, haven't added timer and tested
 #include <bits/stdc++.h>
 
 using namespace std; 
@@ -61,7 +62,7 @@ void twoExchange(const vector<vector<ll>>& dist, vector<int>& tour, const vector
         for (i = 0; i < N; i++, j++) {
             c1 = tour[i]; 
             c2 = tour[j % N];  
-            for (int k = 0; k < neighbour.size(); k++) {
+            for (int k = 0; k < K; k++) {
                m = index[neighbour[c1][k]]; 
                n = m + 1; 
                if (m != i and n != j) {
@@ -97,7 +98,7 @@ void anneal(const vector<vector<ll>>& dist, const vector<vector<int>>& neighbour
     ll curDistance = computeTourDistance(dist); 
 
     while (temperature > threshold) {
-        next = twoExchange(dist, tour, index, neighbour); 
+        next = twoExchange(dist, tour, index, neighbour, K); 
 
         newDistance = computeTourDistance(next); 
 
@@ -151,7 +152,7 @@ int main() {
             l++; 
         }
         sort(temp.begin(), temp.end(), [&](int j, int k) {
-                return d[i][j] < d[i][k];
+                return dist[i][j] < dist[i][k];
             }); 
         copy(temp.begin(), temp.begin() + K, neighbour[i]); 
     }
