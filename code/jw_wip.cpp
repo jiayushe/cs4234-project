@@ -13,6 +13,7 @@ using namespace std;
 #define rep(i, a, b) for (int i = a; i < b; ++i)
 #define trav(a, x) for (auto& a : x)
 
+typedef pair<int, int> ii;
 typedef vector<int> vi;
 typedef vector<vi> vvi;
 typedef vector<bool> vb;
@@ -57,23 +58,23 @@ int main() {
     vi twoNeighbours;
     rep(i, 0, N) { 
         vi curr = AL[i];
-        if(sz(curr) == 1) { // Rule 1
-            if(W[i] >= W[curr[0]]) { 
+        if(sz(curr) == 1) { // Rule 1 N(v) = {u}
+            if(W[i] >= W[curr[0]]) { // W(v) > W(u)
                 if(!cover[curr[0]]) {
                     add(curr[0]);
                 } 
             }
-        } else if(sz(curr) == 2) {
+        } else if(sz(curr) == 2) { // N(v) = {n1, n2}
             twoNeighbours.pb(i);
-            if(AM[curr[0]][curr[1]]) {
-                if(W[i] >= (W[curr[0]] + W[curr[1]])) { // Rule 2
+            if(AM[curr[0]][curr[1]]) { // Rule 2 v, n1, n2 are a clique
+                if(W[i] >= (W[curr[0]] + W[curr[1]])) { // W(v) > W(n1) + W(n2)
                     add(curr[0]);
                     add(curr[1]);
                 }
             }
-            if(sz(AL[curr[0]]) == 2) {
-                if(AM[i][curr[0]] && AM[curr[0]][curr[1]]) { // Rule 3 Start
-                    if(W[i] >= W[curr[0]]) {
+            if(sz(AL[curr[0]]) == 2) { // Rule 3 Start
+                if(AM[curr[0]][curr[1]]) {  // N(n1) = {v, n2}
+                    if(W[i] >= W[curr[0]]) { // We only need either v or n1
                         add(curr[0]);
                     } else {
                         add(i);
@@ -81,8 +82,8 @@ int main() {
                 }
             }
             if(sz(AL[curr[1]]) == 2) {
-                if(AM[i][curr[1]] && AM[curr[0]][curr[1]]) { 
-                    if(W[i] >= W[curr[1]]) {
+                if(AM[curr[0]][curr[1]]) { // N(n2) = {v, n1}
+                    if(W[i] >= W[curr[1]]) { // We only need either v or n2
                         add(curr[1]);
                     } else {
                         add(i);
@@ -94,9 +95,15 @@ int main() {
     int x = sz(twoNeighbours);
     rep(i, 0, x-1) { // Rule 4
         rep(j, i+1, x) {
-            if(AL[i] == AL[j] && ((W[i] + W[j]) >= (W[AL[i][0]] + W[AL[i][1]]))) {
-                add(AL[i][0]);
-                add(AL[i][1]);
+
+            int u = twoNeighbours[i];
+            int v = twoNeighbours[j];
+
+            if(AL[u] == AL[v] && // / N(u) = N(v) ={n1, n2}
+            ((W[u] + W[v]) >= (W[AL[u][0]] + W[AL[u][1]])) && // W(u) + W(v) >= W(n1) + W(n2)
+            (!AM[AL[u][0]][AL[u][1]])) { // {n1, n2} !∈ E
+                add(AL[u][0]);
+                add(AL[u][1]);
             }
         }
     }
