@@ -44,6 +44,9 @@ vi cc; //confidence change
 vi tl; //tabu list
 vb cover;
 vb best_cover;
+vi optimal_vertices;
+vvb AM; // Adjacency Matrix
+vvi AL; // Adjacency List
 
 ll cost = 0;
 ll best_cost = 0;
@@ -88,6 +91,58 @@ void remove(int v) {
         }
     }
 
+}
+
+void get_optimal_vertices() {
+    // Applying `Constructing a Vertex Cover with Reductions` in https://www.aaai.org/ocs/index.php/AAAI/AAAI18/paper/viewFile/16127/16491
+    vi twoNeighbours;
+    rep(i, 0, N) { 
+        vi curr = AL[i];
+        if(sz(curr) == 1) { // Rule 1 N(v) = {u}
+            if(W[i] >= W[curr[0]]) { // W(v) > W(u)
+                optimal_vertices.pb(curr[0]);
+            }
+        } else if(sz(curr) == 2) { // N(v) = {n1, n2}
+            twoNeighbours.pb(i);
+            if(AM[curr[0]][curr[1]]) { // Rule 2 v, n1, n2 are a clique
+                if(W[i] >= (W[curr[0]] + W[curr[1]])) { // W(v) > W(n1) + W(n2)
+                    optimal_vertices.pb(curr[0]);
+                    optimal_vertices.pb(curr[1]);
+                }
+            }
+            if(sz(AL[curr[0]]) == 2) { // Rule 3 Start
+                if(AM[curr[0]][curr[1]]) {  // N(n1) = {v, n2}
+                    if(W[i] >= W[curr[0]]) { // We only need either v or n1
+                        optimal_vertices.pb(curr[0]);
+                    } else {
+                        optimal_vertices.pb(i);
+                    }
+                }
+            }
+            if(sz(AL[curr[1]]) == 2) {
+                if(AM[curr[0]][curr[1]]) { // N(n2) = {v, n1}
+                    if(W[i] >= W[curr[1]]) { // We only need either v or n2
+                        optimal_vertices.pb(curr[1]);
+                    } else {
+                        optimal_vertices.pb(i);
+                    }
+                }
+            } // Rule 3 End
+        }
+    }
+    int x = sz(twoNeighbours);
+    rep(i, 0, x-1) { // Rule 4
+        rep(j, i+1, x) {
+            int u = twoNeighbours[i];
+            int v = twoNeighbours[j];
+            if(AL[u] == AL[v] && // / N(u) = N(v) ={n1, n2}
+            ((W[u] + W[v]) >= (W[AL[u][0]] + W[AL[u][1]])) && // W(u) + W(v) >= W(n1) + W(n2)
+            (!AM[AL[u][0]][AL[u][1]])) { // {n1, n2} !∈ E
+                optimal_vertices.pb(AL[u][0]);
+                optimal_vertices.pb(AL[u][1]);
+            }
+        }
+    }
 }
 
 void reset_rc() {
@@ -291,8 +346,9 @@ int main() {
     rc_index.assign(N, -1);
 
     trav(i, W) cin >> i;
-    vvb AM(N, vb(N, false)); // We store both Adjacency Matrix
-    vvi AL(N, vi()); // and Adjacency List
+    AM.assign(N, vb(N, false)); // We store both Adjacency Matrix
+    AL.assign(N, vi()); // and Adjacency List
+    int kc = 0;
     int ei = 0;
     rep(i, 0, E) {
         int v, u;
@@ -342,7 +398,7 @@ int main() {
     rep(i, 0, E/1024 + 1) {
         b[i] = i;
     }
-
+    get_optimal_vertices();
     rep(i, 0, times) {
         cover.assign(N, false);
         cost = 0;
@@ -355,6 +411,7 @@ int main() {
             rep(j, 0, bs) {
                 index[j] = j + beg;
             }
+            trav(i, optimal_vertices) add(i);
             while(bs > 0) {
                 int ri = rand() % bs;
                 ii edge = e[index[ri]];
