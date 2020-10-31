@@ -1,13 +1,13 @@
 import random
 import os
 
-N = 4000
-E = 600000
-W = 10**7
-T = 100
+N = 10
+E = 20
+W = 10
+T = 10
 
 for t in range(T):
-    n = random.randint(10, N)
+    n = 10
     c = random.randint(1, n // 5)
     q = n // c
     vc = n - c
@@ -16,10 +16,10 @@ for t in range(T):
     te = n*(n-1)/2
     lb = te - vc*(vc-1)/2 + vc*(n-vc)
     ub = te - k
-    e = random.randint(min(lb, ub, E), min(max(lb, ub), E))
+    e = int(ub)
     rr = random.randint(0, q - 1)
     seed = t
-    f = f"../test-cases/{t}.sanchis"
+    f = f"../test-cases/extra-small-{t}.sanchis"
     w = random.randint(1, W)
     print("Testing ", n, e, c, rr)
     os.system(f"./gen {n} {e} {c} {rr} {seed} {f}")
