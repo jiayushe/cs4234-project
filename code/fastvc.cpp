@@ -30,7 +30,7 @@ int N, E;
 // for edges
 vii e; //edge list
 vi ew; // edge weights
-vii us; // uncovered stack
+vi us; // uncovered stack
 vi us_index; //mapping from edge number to index in us
 //for vertices  
 vi W;
@@ -57,13 +57,6 @@ void fast() {
     ios::sync_with_stdio(0);
 }
 
-void add(int v) {
-    if(!cover[v]) {
-        cost += W[v];
-        cover[v] = true;
-    }
-}
-
 void remove(int v) {
     if(cover[v]) cost -= W[v];
     cover[v] = false;
@@ -86,11 +79,12 @@ void remove(int v) {
             score[u] -= ew[ei];
             // cout << "safe to remove " << v << endl;
         } else {
-            // cout << "shouldn't happen " << u << " - " << v << endl;
+            // cout << "removing " << v << " makes uncovered edge " << v << " - " << u << endl; 
             score[u] += ew[ei];
             cc[u] = 1;
-            us.pb(edge);
+            us[usp] = ei;
             us_index[ei] = usp++;
+            // cout << "added " << e[ei].first << " - " << e[ei].second << " to uncov stack " << endl;
         }
     }
 
@@ -139,6 +133,149 @@ int check_cover() {
     return 1;
 }
 
+int remove1() {
+
+    //IDEA: remove all with score 0
+
+    int br = rc[0];
+    double brs = (double)W[br] / (double)abs(score[br]);
+
+    if(score[brs] != 0) {
+        rep(i, 1, rc_size) {
+            int v = rc[i];
+            if(score[v] == 0) break;
+            double s = (double)W[v] / (double)abs(score[v]);
+            if(s > brs) {
+                brs = s;
+                br = v;
+            }
+        }
+    } 
+    remove(br);
+    return br;
+}
+
+int remove2(int num) {
+    int br = rc[rand() % rc_size];
+    double brs = (double)W[br] / (double)abs(score[br]);
+    rep(i, 0, num) {
+        int v = rc[rand() % rc_size];
+        double s = (double)W[v] / (double)abs(score[v]);
+        if(tl[v] == 1 || s < brs) continue;
+        else if(s > brs) {
+            br = v;
+            brs = s;
+        } else {
+            if(t[v] < t[br]) {
+                br = v;
+                brs = s;
+            }
+        }
+    }
+    return br;
+}
+
+int chooseAdd(int r1, int r2 = 0) {
+    double bs = 0.0;
+    int a = 0;
+
+    rep(i, 0, deg[r1]) {
+        int ei = el[r1][i];
+        ii edge = e[ei];
+        int u = edge.first == r1 ? edge.second : edge.first;
+        if(cover[u] || cc[u] == 0) continue;
+        double s = (double)score[u] / (double)W[u];
+        if(s > bs) {
+            bs = s;
+            a = u;
+        } else if(s == bs) {
+            if(t[u] < t[a]) {
+                a = u;
+            }
+        }
+    }
+    if(cc[r1] == 1 && !cover[r1]) {
+        double s = (double)score[r1] / (double)W[r1];
+        if(s > bs) {
+            bs = s;
+            a = r1;
+        } else if(s == bs) {
+            if(t[r1] < t[a]) {
+                a = r1;
+            }
+        }
+    }
+
+    if(r2 != 0) {
+        rep(i, 0, deg[r2]) {
+            int ei = el[r2][i];
+            ii edge = e[ei];
+            int u = edge.first == r2 ? edge.second : edge.first;
+            if(cover[u] || cc[u] == 0) continue;
+            double s = (double)score[u] / (double)W[u];
+            if(s > bs) {
+                bs = s;
+                a = u;
+            } else if(s == bs) {
+                if(t[u] < t[a]) {
+                    a = u;
+                }
+            }
+        }
+        if(cc[r2] == 1 && !cover[r2]) {
+            double s = (double)score[r2] / (double)W[r2];
+            if(s > bs) {
+                bs = s;
+                a = r2;
+            } else if(s == bs) {
+                if(t[r2] < t[a]) {
+                    a = r2;
+                }
+            }
+        }
+    }
+    return a;
+}
+
+void add(int v) {
+    cover[v] = true;
+    score[v] = -score[v];
+    cost += W[v];
+
+    rc[rc_size] = v;
+    rc_index[v] = rc_size++;
+
+    rep(i, 0, deg[v]) {
+        int ei = el[v][i];
+        ii edge = e[ei];
+        int u = edge.first == v ? edge.second : edge.first;
+        if(cover[u]) {
+            score[u] += ew[ei];
+            // cout << i << " out of " << deg[v] << " alr covered" << endl;
+        } else {
+            // cout << " uncovered edge found! " << u << endl;
+            score[u] -= ew[ei];
+            cc[u] = 1;
+            int lucei = us[--usp];
+            int idx = us_index[ei];
+            us[idx] = lucei;
+            us_index[lucei] = idx;
+        }
+    }
+}
+
+void update_ew() {
+    rep(i, 0, usp) {
+        int ei = us[i];
+        ew[ei] += 1;
+        ii edge = e[ei];
+        score[edge.first] += 1;
+        score[edge.second] += 1;
+        cc[edge.first] = 1;
+        cc[edge.second] = 1;
+    }
+}
+
 int main() {
     fast();
     srand(time(NULL));
@@ -156,7 +293,6 @@ int main() {
     trav(i, W) cin >> i;
     vvb AM(N, vb(N, false)); // We store both Adjacency Matrix
     vvi AL(N, vi()); // and Adjacency List
-    int kc = 0;
     int ei = 0;
     rep(i, 0, E) {
         int v, u;
@@ -171,13 +307,13 @@ int main() {
             AM[u][v] = true;
             deg[v]++;
             deg[u]++;
-        } else {
-            kc++;
         }
     }
-    E -= kc;
+    E = ei;
+
     ew.assign(E, 1);
     us_index.assign(E, -1);
+    us.assign(E, -1);
     cover.assign(N, false);
     best_cover.assign(N, false);
 
@@ -271,14 +407,72 @@ int main() {
         }
     }
 
-    update_best_cover();
+    int av, r1, r2 = 0;
+    int step = 1;
 
-    if(check_best_cover() == 0) {
-        cout << "wrong soln here 2" << endl;
-        return 0;
+    while(((float(clock() - start) /  CLOCKS_PER_SEC) < 1.97)) {
+        update_best_cover();  
+        r1 = remove1();
+        // // cout << "uncovered edges left after removing " << r1 << endl;
+        // rep(i, 0, usp) {
+        //     int ei = us[i];
+        //     ii edge = e[ei];
+        //     cout << edge.first << " - " << edge.second << endl;
+        // }
+        r2 = remove2(50);
+
+        remove(r2);
+        // cout << "uncovered edges left after removing " << r2 << endl;
+        // rep(i, 0, usp) {
+        //     int ei = us[i];
+        //     ii edge = e[ei];
+        //     cout << edge.first << " - " << edge.second << endl;
+        // }
+
+        t[r2] = step;
+
+
+        tl.assign(N, 0);
+        // cout << r1 << " and " << r2 << " were removed" << endl;
+        while(usp > 0) {
+            // cout << "uncovered edges left" << endl;
+            // rep(i, 0, usp) {
+            //     int ei = us[i];
+            //     ii edge = e[ei];
+            //     cout << edge.first << " - " << edge.second << endl;
+            // }
+            int toAdd = chooseAdd(r1, r2);
+            // cout << " adding back " << toAdd <<  endl;
+            add(toAdd);
+            update_ew();
+            tl[toAdd] = 1;
+            t[toAdd] = step;
+        }
+        // cout << "uncovered edges left after all additions" << endl;
+        // rep(i, 0, usp) {
+        //     int ei = us[i];
+        //     ii edge = e[ei];
+        //     cout << edge.first << " - " << edge.second << endl;
+        // }
+        rep(i, 0, rc_size) {
+            int v = rc[i];
+            if(cover[v] && score[v] == 0) {
+                remove(v);
+                i--;
+                // cout << "removed " << i << " with degree " << deg[i] << endl;
+            }
+        }
+        // cout << "uncovered edges left after removing redundancies" << endl;
+        // rep(i, 0, usp) {
+        //     int ei = us[i];
+        //     ii edge = e[ei];
+        //     cout << edge.first << " - " << edge.second << endl;
+        // }
+        // cout << step << " iteration(s) done " << endl;
+        step++;
     }
 
-
+    // cout << "made it here 10" << endl;
     cout << best_cost << endl;
     rep(i, 0, N) {
         if(best_cover[i]) {
@@ -287,6 +481,4 @@ int main() {
     }
     cout << endl;
     //cout << float(clock() - start ) /  CLOCKS_PER_SEC;
-        
-
 }
