@@ -23,8 +23,8 @@ typedef vector<vb> vvb;
 typedef vector<ii> vii;
 typedef vector<ll> vl;
 
-int rc_size;
-int usp;
+int rc_size = 0;
+int usp = 0;
 int N, E;
 
 // for edges
@@ -316,6 +316,7 @@ void add(int v) {
             us[idx] = lucei;
             us_index[lucei] = idx;
         }
+        // cout << i << " out of " << deg[v] <<  endl;
     }
 }
 
@@ -335,6 +336,7 @@ int main() {
     fast();
     srand(time(NULL));
     cin >> N >> E;
+    cout << "here 6" << endl;
     W.assign(N, -1);
     score.assign(N, 0);
     deg.assign(N, 0);
@@ -346,14 +348,17 @@ int main() {
     rc_index.assign(N, -1);
 
     trav(i, W) cin >> i;
+    cout << "here 5" << endl;
     AM.assign(N, vb(N, false)); // We store both Adjacency Matrix
-    AL.assign(N, vi()); // and Adjacency List
-    int kc = 0;
+    AL.assign(N, vi()); // and Adjacency list
+    cout << "here 4" << endl;
     int ei = 0;
     rep(i, 0, E) {
         int v, u;
         cin >> v >> u;
+        cout << v << " - " << u << endl;
         if(!AM[v][u] && !AM[u][v]) { 
+            cout << "not seen before" << endl;
             e.pb(make_pair(v, u));
             el[v].pb(ei);
             el[u].pb(ei++);
@@ -363,9 +368,15 @@ int main() {
             AM[u][v] = true;
             deg[v]++;
             deg[u]++;
+        } else {
+            cout << "seen before" << endl;
         }
     }
+
+    cout << "took input" <<  endl;
     E = ei;
+
+    cout << "took input" <<  endl;
 
     ew.assign(E, 1);
     us_index.assign(E, -1);
@@ -398,7 +409,10 @@ int main() {
     rep(i, 0, E/1024 + 1) {
         b[i] = i;
     }
+
+    cout << "here 3" << endl;
     get_optimal_vertices();
+    cout << "here 2" << endl;
     rep(i, 0, times) {
         cover.assign(N, false);
         cost = 0;
@@ -411,7 +425,11 @@ int main() {
             rep(j, 0, bs) {
                 index[j] = j + beg;
             }
-            trav(i, optimal_vertices) add(i);
+            trav(i, optimal_vertices) {
+                cover[i] = true;
+                cost += W[i];
+            }
+            cout << "here " << endl;
             while(bs > 0) {
                 int ri = rand() % bs;
                 ii edge = e[index[ri]];
@@ -437,9 +455,16 @@ int main() {
     cost = best_cost;
 
     if(check_best_cover() == 0) {
-        cout << "wrong soln here 1" << endl;
         return 0;
     }
+
+    cout << best_cost << endl;
+    rep(i, 0, N) {
+        if(best_cover[i]) {
+            cout << i << " ";
+        }
+    }
+    cout << endl;
 
     rep(i, 0, E) {
         ii edge = e[i];
@@ -464,53 +489,65 @@ int main() {
         }
     }
 
+    cout << best_cost << endl;
+    rep(i, 0, N) {
+        if(best_cover[i]) {
+            cout << i << " ";
+        }
+    }
+    cout << endl;
+
     int av, r1, r2 = 0;
     int step = 1;
 
-    while(((float(clock() - start) /  CLOCKS_PER_SEC) < 1.97)) {
+    while(true) {
         update_best_cover();  
+        if((float(clock() - start) /  CLOCKS_PER_SEC) > 1.97) {
+            cout << "time elapsed" << endl;
+            break;
+        }
         r1 = remove1();
-        // // cout << "uncovered edges left after removing " << r1 << endl;
-        // rep(i, 0, usp) {
-        //     int ei = us[i];
-        //     ii edge = e[ei];
-        //     cout << edge.first << " - " << edge.second << endl;
-        // }
+        cout << "uncovered edges left after removing " << r1 << endl;
+        rep(i, 0, usp) {
+            int ei = us[i];
+            ii edge = e[ei];
+            cout << edge.first << " - " << edge.second << endl;
+        }
         r2 = remove2(50);
 
         remove(r2);
-        // cout << "uncovered edges left after removing " << r2 << endl;
-        // rep(i, 0, usp) {
-        //     int ei = us[i];
-        //     ii edge = e[ei];
-        //     cout << edge.first << " - " << edge.second << endl;
-        // }
+        cout << "uncovered edges left after removing " << r2 << endl;
+        rep(i, 0, usp) {
+            int ei = us[i];
+            ii edge = e[ei];
+            cout << edge.first << " - " << edge.second << endl;
+        }
 
         t[r2] = step;
 
 
         tl.assign(N, 0);
-        // cout << r1 << " and " << r2 << " were removed" << endl;
+        cout << r1 << " and " << r2 << " were removed" << endl;
         while(usp > 0) {
-            // cout << "uncovered edges left" << endl;
-            // rep(i, 0, usp) {
-            //     int ei = us[i];
-            //     ii edge = e[ei];
-            //     cout << edge.first << " - " << edge.second << endl;
-            // }
+            cout << "uncovered edges left" << endl;
+            rep(i, 0, usp) {
+                int ei = us[i];
+                ii edge = e[ei];
+                cout << edge.first << " - " << edge.second << endl;
+            }
             int toAdd = chooseAdd(r1, r2);
-            // cout << " adding back " << toAdd <<  endl;
+            cout << " adding back " << toAdd <<  endl;
             add(toAdd);
             update_ew();
             tl[toAdd] = 1;
             t[toAdd] = step;
         }
-        // cout << "uncovered edges left after all additions" << endl;
-        // rep(i, 0, usp) {
-        //     int ei = us[i];
-        //     ii edge = e[ei];
-        //     cout << edge.first << " - " << edge.second << endl;
-        // }
+        cout << "uncovered edges left after all additions" << endl;
+        rep(i, 0, usp) {
+            int ei = us[i];
+            ii edge = e[ei];
+            cout << edge.first << " - " << edge.second << endl;
+        }
         rep(i, 0, rc_size) {
             int v = rc[i];
             if(cover[v] && score[v] == 0) {
@@ -519,13 +556,13 @@ int main() {
                 // cout << "removed " << i << " with degree " << deg[i] << endl;
             }
         }
-        // cout << "uncovered edges left after removing redundancies" << endl;
-        // rep(i, 0, usp) {
-        //     int ei = us[i];
-        //     ii edge = e[ei];
-        //     cout << edge.first << " - " << edge.second << endl;
-        // }
-        // cout << step << " iteration(s) done " << endl;
+        cout << "uncovered edges left after removing redundancies" << endl;
+        rep(i, 0, usp) {
+            int ei = us[i];
+            ii edge = e[ei];
+            cout << edge.first << " - " << edge.second << endl;
+        }
+        cout << step << " iteration(s) done " << endl;
         step++;
     }
 
@@ -537,5 +574,5 @@ int main() {
         }
     }
     cout << endl;
-    //cout << float(clock() - start ) /  CLOCKS_PER_SEC;
+    // cout << float(clock() - start ) /  CLOCKS_PER_SEC;
 }
