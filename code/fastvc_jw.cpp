@@ -126,7 +126,7 @@ int choose_bms_vertex() {
     rep(i, 0, N) {
         if(cover[i] && !tabu[i]) candidates.pb(i);
     }
-    random_shuffle(candidates.begin(), candidates.end());
+    shuffle(candidates.begin(), candidates.end(), default_random_engine(seed));
     double worst_score = 4001;
     int to_remove = candidates[0];
     rep(i, 0, min(sz(candidates), 50)) {
@@ -139,15 +139,19 @@ int choose_bms_vertex() {
 
 }
 
-vii get_uncovered(int w, int u) {
-    vii uncovered_edges;
-    trav(i, AL[w]) {
-        if(!cover[i]) uncovered_edges.eb(w, i);
+vi get_uncovered(int w, int u) {
+    vi edge_indices;
+    trav(i, el[w]) {
+        int a = e[i].first;
+        int b = e[i].second;
+        if(!cover[a] && !cover[b]) edge_indices.pb(i);
     }
-    trav(i, AL[u]) {
-        if(!cover[i]) uncovered_edges.eb(u, i);
+    trav(i, el[u]) {
+        int a = e[i].first;
+        int b = e[i].second;
+        if(!cover[a] && !cover[b]) edge_indices.pb(i);
     }
-    return uncovered_edges;
+    return edge_indices;
 }
 
 int choose_max_gain_vertex() {
@@ -240,13 +244,6 @@ void get_optimal_vertices() {
     }
 }
 
-void update_best_cover() {
-    if(cost < best_cost) {
-        best_cost = cost;
-        best_cover = cover;
-    }
-}
-
 int check_best_cover() {
     rep(i, 0, E) {
         ii edge = e[i];
@@ -271,6 +268,13 @@ int check_cover() {
     return 1;
 }
 
+void update_best_cover() {
+    if(check_cover() == 1 && cost < best_cost) {
+        best_cost = cost;
+        best_cover = cover;
+    }
+}
+
 int main() {
     //fast();
     srand(time(NULL));
@@ -285,7 +289,6 @@ int main() {
     trav(i, W) cin >> i;
     AM.assign(N, vb(N, false)); // We store both Adjacency Matrix
     AL.assign(N, vi()); // and Adjacency List
-    int kc = 0;
     int ei = 0;
     rep(i, 0, E) {
         int v, u;
@@ -300,11 +303,9 @@ int main() {
             AM[u][v] = true;
             deg[v]++;
             deg[u]++;
-        } else {
-            kc++;
         }
     }
-    E -= kc;
+    E = ei;
     ew.assign(E, 1);
     cover.assign(N, false);
     best_cover.assign(N, false);
@@ -370,10 +371,10 @@ int main() {
     cover = best_cover;
     cost = best_cost;
 
-    if(check_best_cover() == 0) {
-        cout << "wrong soln here 1" << endl;
-        return 0;
-    }
+    // if(check_best_cover() == 0) {
+    //     cout << "wrong soln here 1" << endl;
+    //     return 0;
+    // }
 
     rep(i, 0, E) {
         ii edge = e[i];
@@ -394,10 +395,10 @@ int main() {
 
     update_best_cover();
 
-    if(check_best_cover() == 0) {
-        cout << "wrong soln here 2" << endl;
-        return 0;
-    }
+    // if(check_best_cover() == 0) {
+    //     cout << "wrong soln here 2" << endl;
+    //     return 0;
+    // }
 
     cc.assign(N, 1);
 
@@ -414,16 +415,17 @@ int main() {
         update_cc_remove(u);
         tabu.assign(N, 0);
         // Generate Uncovered edges 
-        vii uncovered_edges = get_uncovered(u, w);
+        vi uncovered_edges = get_uncovered(u, w);
         
         // Choose vertices to add
         while(sz(uncovered_edges) > 0) {
             int v = choose_max_gain_vertex();
             add(v);
-            vii new_ue;
+            vi new_ue;
             // Update edges after adding
             trav(i, uncovered_edges) {
-                if(v != i.first && v != i.second) {
+                ii edge = e[i];
+                if(v != edge.first && v != edge.second) {
                     new_ue.pb(i);
                 }
             }
@@ -431,8 +433,12 @@ int main() {
             tabu[v] = 1;
             update_cc_add(v);
             trav(i, uncovered_edges) {
-                //ew[i]++; I'm not sure how to do this + how this is used.
-                cc[i.first] = 1; cc[i.second] = 1;
+                ew[i]++;
+                ii edge = e[i];
+                score[edge.first]++;
+                score[edge.second]++;
+                cc[edge.first] = 1;
+                cc[edge.second] = 1;
             }
         }
         // Clean up and compare
@@ -442,10 +448,10 @@ int main() {
     }
     
 
-    if(check_best_cover() == 0) {
-        cout << "wrong soln here 3" << endl;
-        return 0;
-    }
+    // if(check_best_cover() == 0) {
+    //     cout << "wrong soln here 3" << endl;
+    //     return 0;
+    // }
 
     cout << best_cost << endl;
     rep(i, 0, N) {
