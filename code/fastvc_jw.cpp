@@ -39,7 +39,7 @@ vvi el; // index of edges
 vl t; //timestamp
 vi deg; //degree
 vi cc; //configuration change
-//tabu list
+vi tabu;
 vb cover;
 vb best_cover;
 vi optimal_vertices;
@@ -63,6 +63,19 @@ void add(int v) {
         cost += W[v];
         cover[v] = true;
     }
+    score[v] = -score[v];
+    rep(i, 0, deg[v]) {
+        int ei = el[v][i];
+        ii edge = e[ei];
+        int u = edge.first == v ? edge.second : edge.first;
+        if(cover[u]) {
+            score[u] += ew[ei];
+        } else {
+            score[u] -= ew[ei];
+        }
+    }
+
+
 }
 
 void remove(int v) {
@@ -95,21 +108,60 @@ void remove_redundant() {
 }
 
 int choose_min_loss_vertex() {
+    double min_loss = -DBL_MAX;
+    int to_remove = -1;
     rep(i, 0, N) {
-        if(cover[i]) return i;
+        if(cover[i]) {
+            if(score[i] > min_loss) {
+                to_remove = i;
+                min_loss = score[i];
+            }
+        }
     }
+    return to_remove;
 }
 
 int choose_bms_vertex() {
+    vi candidates;
     rep(i, 0, N) {
-        if(cover[i]) return i;
+        if(cover[i] && !tabu[i]) candidates.pb(i);
     }
+    random_shuffle(candidates.begin(), candidates.end());
+    double worst_score = 4001;
+    int to_remove = -1;
+    rep(i, 0, min(sz(candidates), 50)) {
+        if(score[candidates[i]] < worst_score) {
+            worst_score = score[candidates[i]];
+            to_remove = candidates[i];
+        }
+    }
+    return to_remove;
+
+}
+
+vii get_uncovered(int w, int u) {
+    vii uncovered_edges;
+    trav(i, AL[w]) {
+        if(!cover[i]) uncovered_edges.eb(w, i);
+    }
+    trav(i, AL[u]) {
+        if(!cover[i]) uncovered_edges.eb(u, i);
+    }
+    return uncovered_edges;
 }
 
 int choose_max_gain_vertex() {
+    double max_gain = 0;
+    int to_add = -1;
     rep(i, 0, N) {
-        if(!cover[i]) return i;
+        if(!cover[i]) {
+            if(score[i] > max_gain) {
+                to_add = i;
+                max_gain = score[i];
+            }
+        }
     }
+    return to_add;
 }
 
 void update_cc_remove(int v) {
@@ -209,7 +261,7 @@ int check_cover() {
 }
 
 int main() {
-    fast();
+    //fast();
     srand(time(NULL));
     cin >> N >> E;
     W.assign(N, -1);
@@ -217,6 +269,7 @@ int main() {
     deg.assign(N, 0);
     t.assign(N, 0);
     el.assign(N, vi());
+    tabu.assign(N, 0);
 
     trav(i, W) cin >> i;
     AM.assign(N, vb(N, false)); // We store both Adjacency Matrix
@@ -337,30 +390,46 @@ int main() {
 
     cc.assign(N, 1);
 
+    int ctr = 0;
+    
     while(((float(clock() - start) /  CLOCKS_PER_SEC) < 1.97)) {
         // Choose vertices to remove
         int w = choose_min_loss_vertex();
         remove(w);
+        
         update_cc_remove(w);
         int u = choose_bms_vertex();
         remove(u);
         update_cc_remove(u);
-        // reset tabu
-
+        tabu.assign(N, 0);
+        // Generate Uncovered edges 
+        vii uncovered_edges = get_uncovered(u, w);
+        
         // Choose vertices to add
-        // while(edges_uncovered) {}
+        while(sz(uncovered_edges) > 0) {
             int v = choose_max_gain_vertex();
             add(v);
-            //add v to tabu
+            vii new_ue;
+            // Update edges after adding
+            trav(i, uncovered_edges) {
+                if(v != i.first && v != i.second) {
+                    new_ue.pb(i);
+                }
+            }
+            uncovered_edges = new_ue;
+            tabu[v] = 1;
             update_cc_add(v);
-            //rep(uncovered edges) {}
-                ew[i] ++;
-                cc[edge.first] = 1; cc[edge.second] = 1;
-        
+            trav(i, uncovered_edges) {
+                //ew[i]++; I'm not sure how to do this + how this is used.
+                cc[i.first] = 1; cc[i.second] = 1;
+            }
+        }
         // Clean up and compare
         remove_redundant();
         update_best_cover();
+        ctr++;
     }
+    
 
     if(check_best_cover() == 0) {
         cout << "wrong soln here 3" << endl;
@@ -374,7 +443,7 @@ int main() {
         }
     }
     cout << endl;
-    //cout << float(clock() - start ) /  CLOCKS_PER_SEC;
+    cout << float(clock() - start ) /  CLOCKS_PER_SEC;
         
 
 }
