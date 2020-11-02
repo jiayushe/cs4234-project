@@ -109,7 +109,7 @@ void remove_redundant() {
 
 int choose_min_loss_vertex() {
     double min_loss = -DBL_MAX;
-    int to_remove = -1;
+    int to_remove = 0;
     rep(i, 0, N) {
         if(cover[i]) {
             if(score[i] > min_loss) {
@@ -128,7 +128,7 @@ int choose_bms_vertex() {
     }
     random_shuffle(candidates.begin(), candidates.end());
     double worst_score = 4001;
-    int to_remove = -1;
+    int to_remove = candidates[0];
     rep(i, 0, min(sz(candidates), 50)) {
         if(score[candidates[i]] < worst_score) {
             worst_score = score[candidates[i]];
@@ -161,6 +161,17 @@ int choose_max_gain_vertex() {
             }
         }
     }
+
+    // In case no candidates
+    if(to_add == -1) {
+        rep(i, 0, N) {
+            if(!cover[i]) {
+                to_add = i;
+                break;
+            }
+        }
+    }
+
     return to_add;
 }
 
@@ -392,7 +403,7 @@ int main() {
 
     int ctr = 0;
     
-    while(((float(clock() - start) /  CLOCKS_PER_SEC) < 1.97)) {
+    while(((float(clock() - start) /  CLOCKS_PER_SEC) < 1.90)) {
         // Choose vertices to remove
         int w = choose_min_loss_vertex();
         remove(w);
@@ -443,7 +454,7 @@ int main() {
         }
     }
     cout << endl;
-    cout << float(clock() - start ) /  CLOCKS_PER_SEC;
+    //cout << float(clock() - start ) /  CLOCKS_PER_SEC;
         
 
 }
