@@ -79,7 +79,13 @@ void add(int v) {
 }
 
 void remove(int v) {
-    if(cover[v]) cost -= W[v];
+    //cout << "Removing " << v << endl;
+    if(cover[v]) {
+        cost -= W[v];
+    } else {
+        cout << "Remove error" << endl;
+        exit(0);
+    }
     cover[v] = false;
     score[v] = -score[v];
 
@@ -119,10 +125,6 @@ int choose_min_loss_vertex() { // Choose v in C such that score(v) is the highes
             }
         }
     }
-    if(to_remove == -1) {
-        cout << "Choose Min Loss Error" << endl;
-        exit(0);
-    }
     return to_remove;
 }
 
@@ -141,10 +143,6 @@ int choose_bms_vertex() { // 50 Random candidates not in tabu, picking the candi
             worst_score = ascore;
             to_remove = candidates[i];
         }
-    }
-    if(to_remove == -1) {
-        cout << "Choose BMS Error" << endl;
-        exit(0);
     }
     return to_remove;
 
@@ -284,7 +282,7 @@ void update_best_cover() {
 }
 
 int main() {
-    //fast();
+    fast();
     srand(time(NULL));
     cin >> N >> E;
     W.assign(N, -1);
@@ -302,7 +300,7 @@ int main() {
         int v, u;
         cin >> v >> u;
         if(!AM[v][u] && !AM[u][v]) { 
-            e.pb(make_pair(v, u));
+            e.eb(v, u);
             el[v].pb(ei);
             el[u].pb(ei++);
             AL[v].pb(u);
@@ -354,7 +352,10 @@ int main() {
             rep(j, 0, bs) {
                 index[j] = j + beg;
             }
-            trav(i, optimal_vertices) add(i);
+            trav(i, optimal_vertices) {
+                cover[i] = true;
+                cost += W[i];
+            }
             while(bs > 0) {
                 int ri = rand() % bs;
                 ii edge = e[index[ri]];
@@ -376,8 +377,36 @@ int main() {
         }
         update_best_cover();
     }
+
+    
+    // Naive
+    cover.assign(N, false);
+    ll cost = 0;
+    trav(i, e) {
+        int u = i.first; int v = i.second;
+        if(W[u] < W[v]) {
+            cover[u] = true;
+            cost += W[u];
+        } else if(W[u] > W[v]) {
+            cover[v] = true;
+            cost += W[v];
+        } else if(u < v) {
+            cover[u] = true;
+            cost += W[u];
+        } else {
+            cover[v] = true;
+            cost += W[v];
+        }
+    }
+    update_best_cover();
+    // Naive end
+    
+
+
     cover = best_cover;
     cost = best_cost;
+
+    
 
     // if(check_best_cover() == 0) {
     //     cout << "wrong soln here 1" << endl;
@@ -401,7 +430,7 @@ int main() {
 
     remove_redundant();
 
-    update_best_cover();
+    
 
     // if(check_best_cover() == 0) {
     //     cout << "wrong soln here 2" << endl;
@@ -412,13 +441,15 @@ int main() {
 
     int ctr = 0;
     
-    while(((float(clock() - start) /  CLOCKS_PER_SEC) < 1.90)) {
+    while(((float(clock() - start) /  CLOCKS_PER_SEC) < 1.95)) {
         // Choose vertices to remove
         int w = choose_min_loss_vertex();
+        if(w == -1) break;
         remove(w);
-        
         update_cc_remove(w);
+
         int u = choose_bms_vertex();
+        if(u == -1) break;
         remove(u);
         update_cc_remove(u);
         tabu.assign(N, 0);
@@ -454,17 +485,19 @@ int main() {
         }
         
         // Clean up and compare
-        // cout << "At iteration " << ctr << " cost is " << cost << endl; 
+        
         remove_redundant();
         update_best_cover();
+
+        //cout << "At iteration " << ctr << " cost is " << cost << endl; 
         ctr++;
     }
     
 
-    // if(check_best_cover() == 0) {
-    //     cout << "wrong soln here 3" << endl;
-    //     return 0;
-    // }
+    if(check_best_cover() == 0) {
+         cout << "wrong soln here 3" << endl;
+         return 0;
+     }
 
     cout << best_cost << endl;
     rep(i, 0, N) {
