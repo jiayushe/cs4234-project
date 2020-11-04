@@ -107,33 +107,44 @@ void remove_redundant() {
     }
 }
 
-int choose_min_loss_vertex() {
+int choose_min_loss_vertex() { // Choose v in C such that score(v) is the highest negative number
     double min_loss = -DBL_MAX;
-    int to_remove = 0;
+    int to_remove = -1;
     rep(i, 0, N) {
         if(cover[i]) {
-            if(score[i] > min_loss) {
+            double ascore = score[i] / W[i];
+            if(ascore > min_loss) {
                 to_remove = i;
-                min_loss = score[i];
+                min_loss = ascore;
             }
         }
+    }
+    if(to_remove == -1) {
+        cout << "Choose Min Loss Error" << endl;
+        exit(0);
     }
     return to_remove;
 }
 
-int choose_bms_vertex() {
+int choose_bms_vertex() { // 50 Random candidates not in tabu, picking the candidate with the highest negative number
     vi candidates;
     rep(i, 0, N) {
         if(cover[i] && !tabu[i]) candidates.pb(i);
     }
+
     shuffle(candidates.begin(), candidates.end(), default_random_engine(seed));
-    double worst_score = 4001;
-    int to_remove = candidates[0];
+    double worst_score = -DBL_MAX;
+    int to_remove = -1;
     rep(i, 0, min(sz(candidates), 50)) {
-        if(score[candidates[i]] < worst_score) {
-            worst_score = score[candidates[i]];
+        double ascore = score[candidates[i]] / W[candidates[i]];
+        if(ascore > worst_score) {
+            worst_score = ascore;
             to_remove = candidates[i];
         }
+    }
+    if(to_remove == -1) {
+        cout << "Choose BMS Error" << endl;
+        exit(0);
     }
     return to_remove;
 
@@ -159,21 +170,18 @@ int choose_max_gain_vertex() {
     int to_add = -1;
     rep(i, 0, N) {
         if(!cover[i]) {
-            if(score[i] > max_gain) {
+            double ascore = score[i] / W[i]; 
+            if(ascore > max_gain) {
                 to_add = i;
-                max_gain = score[i];
+                max_gain = ascore;
             }
         }
     }
 
     // In case no candidates
     if(to_add == -1) {
-        rep(i, 0, N) {
-            if(!cover[i]) {
-                to_add = i;
-                break;
-            }
-        }
+        cout << "Choose max gain error" << endl;
+        exit(0);
     }
 
     return to_add;
@@ -415,7 +423,9 @@ int main() {
         update_cc_remove(u);
         tabu.assign(N, 0);
         // Generate Uncovered edges 
+
         vi uncovered_edges = get_uncovered(u, w);
+        // cout << "We removed vertices " << w << " and " << u << endl; 
         
         // Choose vertices to add
         while(sz(uncovered_edges) > 0) {
@@ -440,8 +450,11 @@ int main() {
                 cc[edge.first] = 1;
                 cc[edge.second] = 1;
             }
+            // cout << "We added vertice  " << v << endl;
         }
+        
         // Clean up and compare
+        // cout << "At iteration " << ctr << " cost is " << cost << endl; 
         remove_redundant();
         update_best_cover();
         ctr++;
