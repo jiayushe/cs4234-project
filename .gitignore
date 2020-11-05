@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+tsp*
+
+# IDE
+.vscode
