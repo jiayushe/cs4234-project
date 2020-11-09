@@ -229,7 +229,10 @@ vi approx(const chrono::time_point<chrono::high_resolution_clock>& deadline) {
     for(int i = 0; (chrono::high_resolution_clock::now() + max(chrono::milliseconds(50), 2 * averageTime)) < deadline; i++) {
         debug(bestDist);
         auto start = chrono::high_resolution_clock::now();
-        tour = perturb(tour);
+        tour = bestTour;
+        int seed = rand() % (n - n / 10);
+        shuffle(tour.begin() + seed, tour.begin() + seed + n / 10, rng);
+        // tour = perturb(tour);
         maxD = 0;
         for(int j = 0; j < n; j++) {
             pos[tour[j]] = j;
