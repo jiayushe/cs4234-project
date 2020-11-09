@@ -37,6 +37,7 @@ using namespace std;
 #define rloop(i, l, r) for (ll i = (l); i >= (ll)(r); i--)
 #define debug(x) cerr<<#x<<" -> "<<x<<'\n'
 
+/*
 struct VectorHash {
     int operator()(const vi &v) const {
         int hash = v.size();
@@ -46,6 +47,7 @@ struct VectorHash {
         return hash;
     }
 };
+*/
 
 inline double square(double x) { return x * x; }
 
@@ -91,9 +93,16 @@ pair<ll, vi> dp(int u, int mask) {
     return ans;
 }
 
-inline int checkExist(const uset<vi, VectorHash>& tabuList, const vi& tour) { return tabuList.find(tour) == tabuList.end() ? 0 : 1; }
+int checkExist(vll& tabuList, ll temp) { 
+    for (int i = 0; i < tabuList.size(); i++) {
+            if (tabuList[i] == temp) {
+            return 1; 
+        }
+    }
+    return 0; 
+}
 
-vi greedy() {
+vi greedy() { 
     vi res(n), used(n);
     used[0] = 1;
     ll dist = 0;
@@ -145,9 +154,17 @@ inline vi perturb(vi& tour) {
     return newTour;
 }
 
+void pop_front(vll &v)
+{
+	if (v.size() > 0) {
+		v.erase(v.begin());
+	}
+}
+
 void twoOpt(vi& tour, vi& pos, ll& maxD) {
     int p, q, r, s, pi, qi, ri, si;
     bool opt = false;
+    vll tabuList; 
     while(!opt) {
         opt = true;
         for(pi = 0; pi < n; pi++) {
@@ -158,12 +175,22 @@ void twoOpt(vi& tour, vi& pos, ll& maxD) {
                 si = (ri + 1) % n;
                 r = tour[ri], s = tour[si];
                 if(p == s or q == r) continue;
+                if (d[p][q] > d[q][s]) continue; 
                 if(d[p][r] + minD > d[p][q] + maxD) break;
-                if(d[p][r] + d[q][s] < d[p][q] + d[r][s]) {
-                    reverse(tour, pos, qi, ri);
-                    maxD = getMax(vll{maxD, d[p][r], d[q][s]});
-                    opt = false;
-                    break;
+                ll temp =  p*1000000000000 + q*100000000 + r*10000 + s; 
+                //cout << temp << endl;
+                if(d[p][r] + d[q][s] < d[p][q] + d[r][s]) {  
+                    if (!checkExist(tabuList, temp)) {
+                        reverse(tour, pos, qi, ri);
+                        maxD = getMax(vll{maxD, d[p][r], d[q][s]});
+                        tabuList.push_back(temp); 
+                         
+                        if (tabuList.size() > maxTabuSize) {
+                            pop_front(tabuList);  
+                        }
+                        opt = false;
+                        break;
+                    }
                 }
             }
         }
@@ -229,7 +256,6 @@ void threeOpt(vi& tour, vi& pos, ll& maxD, const chrono::time_point<chrono::high
 
 vi approx(const chrono::time_point<chrono::high_resolution_clock>& deadline) {
     vi tour = greedy(), pos(n);
-    uset<vi, VectorHash> tabuList; 
     ll maxD = 0;
     for(int i = 0; i < n; i++) {
         pos[tour[i]] = i;
@@ -252,18 +278,12 @@ vi approx(const chrono::time_point<chrono::high_resolution_clock>& deadline) {
             pos[tour[j]] = j;
             maxD = max(maxD, d[tour[j]][tour[(j + 1) % n]]);
         }
-        if(!checkExist(tabuList, tour)) {
-            twoOpt(tour, pos, maxD);
-            threeOpt(tour, pos, maxD, deadline);
-            ll currDist = totalDist(tour);
-            if(currDist < bestDist) {
-                bestTour = tour;
-                bestDist = currDist;
-            }
-        }
-        tabuList.insert(tour);
-        if (tabuList.size() > maxTabuSize) {
-            tabuList.erase(tabuList.begin()); 
+        twoOpt(tour, pos, maxD);
+        threeOpt(tour, pos, maxD, deadline);
+        ll currDist = totalDist(tour);
+        if(currDist < bestDist) {
+            bestTour = tour;
+            bestDist = currDist;
         } 
         totalTime += chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - start);
         averageTime = totalTime / (i + 1);
@@ -311,7 +331,7 @@ int main() {
         reverse(all(res.se));
         for(auto i : res.se) cout<<i<<endl;
     } else {
-        vi res = approx(chrono::high_resolution_clock::now() + chrono::milliseconds(1900));
+        vi res = approx(chrono::high_resolution_clock::now() + chrono::milliseconds(1950));
         for(auto i : res) cout<<i<<endl;
     }
     
