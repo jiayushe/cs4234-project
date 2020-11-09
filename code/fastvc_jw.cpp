@@ -109,13 +109,13 @@ int choose_min_loss_vertex() {
     double min_loss = -INF;
     int to_remove = -1; // Consider always returning valid 
     rep(i, 0, N) {
-        if(cover[i]) {
+        if(cover[i] && optimal_vertices.count(i) == 0) {
         to_remove = i;
         break;
       }
     }
     rep(i, 0, N) {
-        if(cover[i]) {
+        if(cover[i] && optimal_vertices.count(i) == 0) {
             double ascore = (double)W[i] / (double)abs(score[i]);
             if(ascore > min_loss) {
                 to_remove = i;
@@ -135,10 +135,16 @@ int choose_bms_vertex() {
     double worst_score = -INF;
     int to_remove = -1; // Consider removing random vertex from the cover
     rep(i, 0, min(sz(candidates), 50)) {
-        double ascore = (double)W[candidates[i]] / (double)abs(score[candidates[i]]);
-        if(ascore > worst_score) {
-            worst_score = ascore;
-            to_remove = candidates[i];
+        if(optimal_vertices.count(i) == 0) {
+            double ascore = (double)W[candidates[i]] / (double)abs(score[candidates[i]]);
+            if(ascore > worst_score) {
+                worst_score = ascore;
+                to_remove = candidates[i];
+            } else if(ascore == worst_score) {
+                if(t[candidates[i]] < t[to_remove]) {
+                    to_remove = candidates[i];
+                }
+            }
         }
     }
     return to_remove;
@@ -163,11 +169,15 @@ int choose_max_gain_vertex() {
     double max_gain = 0;
     int to_add = -1;
     rep(i, 0, N) {
-        if(!cover[i]) {
+        if(!cover[i] && cc[i] == 1) {
             double ascore = (double)score[i] / (double)W[i];
             if(ascore > max_gain) {
                 to_add = i;
                 max_gain = ascore;
+            } else if(ascore == max_gain) {
+                if(t[i] < t[to_add]) {
+                    to_add = i;
+                }
             }
         }
     }
@@ -402,8 +412,9 @@ int main() {
         update_cc_remove(w);
         int u = choose_bms_vertex();
         if(u != -1) {
-          remove(u);
+            remove(u);
             update_cc_remove(u);
+            t[u] = ctr;
         }
         tabu.assign(N, 0);
         // Generate Uncovered edges 
@@ -416,6 +427,7 @@ int main() {
               throw; 
             }
             add(v);
+            t[v] = ctr;
             vi new_ue;
             // Update edges after adding
             trav(i, uncovered_edges) {
