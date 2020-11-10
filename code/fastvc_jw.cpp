@@ -42,8 +42,8 @@ vl t; //timestamp
 vi deg; //degree
 vi cc; //configuration change
 vi tabu;
-vb cover;
-vb best_cover;
+uset<int> cover;
+uset<int> best_cover;
 uset<int> optimal_vertices;
 vvb AM; // Adjacency Matrix
 vvi AL; // Adjacency List
@@ -61,15 +61,15 @@ void fast() {
 }
 
 void add(int v) {
-    if(cover[v]) abort();
+    if(cover.count(v) >= 1) abort();
     cost += W[v];
-    cover[v] = true;
+    cover.insert(v);
     score[v] = -score[v];
     rep(i, 0, deg[v]) {
         int ei = el[v][i];
         ii edge = e[ei];
         int u = edge.first == v ? edge.second : edge.first;
-        if(cover[u]) {
+        if(cover.count(u) >= 1) {
             score[u] += ew[ei];
         } else {
             score[u] -= ew[ei];
@@ -78,18 +78,18 @@ void add(int v) {
 }
 
 void remove(int v) {
-    if(!cover[v]) {
+    if(!cover.count(v) >= 1) {
         int dummy = 1/0;
       return;
     }
     cost -= W[v];
-    cover[v] = false;
+    cover.erase(v);
     score[v] = -score[v];
     rep(i, 0, deg[v]) {
         int ei = el[v][i];
         ii edge = e[ei];
         int u = edge.first == v ? edge.second : edge.first;
-        if(cover[u]) {
+        if(cover.count(u) >= 1) {
             score[u] -= ew[ei];
         } else {
             score[u] += ew[ei];
@@ -98,8 +98,8 @@ void remove(int v) {
 }
 
 void remove_redundant() {
-    rep(i, 0, N) {
-        if(cover[i] && score[i] == 0) {
+    trav(i, cover) {
+        if(score[i] == 0) {
             remove(i);
         }
     }
@@ -108,14 +108,8 @@ void remove_redundant() {
 int choose_min_loss_vertex() {
     double min_loss = -INF;
     int to_remove = -1; // Consider always returning valid 
-    rep(i, 0, N) {
-        if(cover[i] && optimal_vertices.count(i) == 0) {
-        to_remove = i;
-        break;
-      }
-    }
-    rep(i, 0, N) {
-        if(cover[i] && optimal_vertices.count(i) == 0) {
+    trav(i, cover) {
+        if(optimal_vertices.count(i) == 0) {
             double ascore = (double)W[i] / (double)abs(score[i]);
             if(ascore > min_loss) {
                 to_remove = i;
@@ -128,8 +122,8 @@ int choose_min_loss_vertex() {
 
 int choose_bms_vertex() {
     vi candidates;
-    rep(i, 0, N) {
-        if(cover[i] && !tabu[i]) candidates.pb(i);
+    trav(i, cover) {
+        if(!tabu[i]) candidates.pb(i);
     }
     shuffle(candidates.begin(), candidates.end(), default_random_engine(seed));
     double worst_score = -INF;
@@ -155,12 +149,12 @@ vi get_uncovered(int w, int u) {
     trav(i, el[w]) {
         int a = e[i].first;
         int b = e[i].second;
-        if(!cover[a] && !cover[b]) edge_indices.pb(i);
+        if(!cover.count(a) >= 1 && !cover.count(b) >= 1) edge_indices.pb(i);
     }
     trav(i, el[u]) {
         int a = e[i].first;
         int b = e[i].second;
-        if(!cover[a] && !cover[b]) edge_indices.pb(i);
+        if(!cover.count(a) >= 1 && !cover.count(b) >= 1) edge_indices.pb(i);
     }
     return edge_indices;
 }
@@ -169,7 +163,7 @@ int choose_max_gain_vertex() {
     double max_gain = 0;
     int to_add = -1;
     rep(i, 0, N) {
-        if(!cover[i] && cc[i] == 1) {
+        if(cover.count(i) == 0 && cc[i] == 1) {
             double ascore = (double)score[i] / (double)W[i];
             if(ascore > max_gain) {
                 to_add = i;
@@ -254,7 +248,7 @@ int check_best_cover() {
         ii edge = e[i];
         int v = edge.first;
         int u = edge.second;
-        if(!(best_cover[v] || best_cover[u])) {
+        if(!(best_cover.count(v) >= 1 || best_cover.count(u) >= 1)) {
             return 0;
         }
     }
@@ -266,7 +260,7 @@ ll check_cover() {
         ii edge = e[i];
         int v = edge.first;
         int u = edge.second;
-        if(!(cover[v] || cover[u])) {
+        if(!(cover.count(v) >= 1 || cover.count(u) >= 1)) {
             return 0;
         }
     }
@@ -312,20 +306,20 @@ int main() {
     }
     E = ei;
     ew.assign(E, 1);
-    cover.assign(N, false);
-    best_cover.assign(N, false);
+    cover.clear();
+    best_cover.clear();
     rep(i, 0, E) {
         ii edge = e[i];
         int v = edge.first;
         int u = edge.second;
-        if(!(cover[u] || cover[v])) {
+        if(!(cover.count(u) >= 1 || cover.count(v) >= 1)) {
             double vs = (double)deg[v] / W[v];
             double us = (double)deg[u] / W[u];
             if(vs > us) {
-                cover[v] = true;
+                cover.insert(v);
                 cost += W[v];
             } else {
-                cover[u] = true;
+                cover.insert(v);
                 cost += W[u];
             }
         }
@@ -340,11 +334,11 @@ int main() {
     }
     get_optimal_vertices();
     rep(i, 0, times) {
-        cover.assign(N, false);
+        cover.clear();
         cost = 0;
         trav(o, optimal_vertices) {
-            if(!cover[o]) {
-              cover[o] = true;
+            if(!cover.count(o) >= 1) {
+              cover.insert(o);
               cost += W[o];
             }
         } 
@@ -363,14 +357,14 @@ int main() {
                 int v = edge.first;
                 int u = edge.second;
                 swap(index[ri], index[--bs]);
-                if(!(cover[u] || cover[v])) {
+                if(!(cover.count(u) >= 1 || cover.count(v) >= 1)) {
                     double vs = (double)deg[v] / W[v];
                     double us = (double)deg[u] / W[u];
                     if(vs > us) {
-                        cover[v] = true;
+                        cover.insert(v);
                         cost += W[v];
                     } else {
-                        cover[u] = true;
+                        cover.insert(u);
                         cost += W[u];
                     }
                 }
@@ -386,9 +380,9 @@ int main() {
         ii edge = e[i];
         int v = edge.first;
         int u = edge.second;
-        if(cover[u] && !cover[v]) {
+        if(cover.count(u) >= 1 && !cover.count(v) >= 1) {
             score[u] -= ew[i];
-        } else if(cover[v] && !cover[u]) {
+        } else if(cover.count(v) >= 1 && !cover.count(u) >= 1) {
             score[v] -= ew[i];
         }
     }
@@ -421,7 +415,7 @@ int main() {
         while(sz(uncovered_edges) > 0) {
             int v = choose_max_gain_vertex();
             if(v == -1) {
-              throw; 
+                throw; 
             }
             add(v);
             added.insert(v);
@@ -448,11 +442,11 @@ int main() {
         }
         
         trav(v, added) {
-            if(cover[v] && score[v] == 0) {
+            if(cover.count(v) >= 1 && score[v] == 0) {
                 remove(v);
             }
             trav(u, AL[v]) {
-                if(cover[u] && score[u] == 0) {
+                if(cover.count(u) >= 1 && score[u] == 0) {
                     remove(u);
                 }
             }
@@ -461,11 +455,13 @@ int main() {
         ctr++;
     }
 
+    if(check_best_cover() == 0) {
+        cout << "wrong soln" << endl;
+    }
+
     cout << best_cost << endl;
-    rep(i, 0, N) {
-        if(best_cover[i]) {
-            cout << i << " ";
-        }
+    trav(i, best_cover) {
+        cout << i << " ";
     }
     cout << endl;
     //cout << float(clock() - start ) /  CLOCKS_PER_SEC;
