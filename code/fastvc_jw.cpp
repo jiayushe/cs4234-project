@@ -416,7 +416,7 @@ int main() {
         tabu.assign(N, 0);
         // Generate Uncovered edges 
         vi uncovered_edges = get_uncovered(u, w);
-        
+        uset<int> added;
         // Choose vertices to add
         while(sz(uncovered_edges) > 0) {
             int v = choose_max_gain_vertex();
@@ -424,6 +424,7 @@ int main() {
               throw; 
             }
             add(v);
+            added.insert(v);
             t[v] = ctr;
             vi new_ue;
             // Update edges after adding
@@ -445,8 +446,17 @@ int main() {
                 cc[edge.second] = 1;
             }
         }
-        // Clean up and compare
-        remove_redundant();
+        
+        trav(v, added) {
+            if(cover[v] && score[v] == 0) {
+                remove(v);
+            }
+            trav(u, AL[v]) {
+                if(cover[u] && score[u] == 0) {
+                    remove(u);
+                }
+            }
+        }
         update_best_cover();
         ctr++;
     }
