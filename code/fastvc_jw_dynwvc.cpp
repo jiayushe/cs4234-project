@@ -273,11 +273,13 @@ ll check_cover() {
     return 1;
 }
 
-void update_best_cover() {
+bool update_best_cover() {
     if(cost < best_cost) { // Optimally we don't want to check the cover here
         best_cost = cost;
         best_cover = cover;
+        return true;
     }
+    return false;
 }
 
 int main() {
@@ -398,6 +400,7 @@ int main() {
     cc.assign(N, 1);
 
     int ctr = 0;
+    int no_improve = 0;
     
     while(((float(clock() - start) /  CLOCKS_PER_SEC) < 1.99)) {
         // Choose vertices to remove
@@ -407,7 +410,14 @@ int main() {
         }
         remove(w); 
         update_cc_remove(w);
-        int u = choose_bms_vertex();
+        int u;
+        if(no_improve > 0) {
+            u = choose_min_loss_vertex();
+        } else {
+            u = choose_bms_vertex();
+            no_improve = 0;
+        }
+        
         if(u != -1) {
             remove(u);
             update_cc_remove(u);
@@ -457,7 +467,11 @@ int main() {
                 }
             }
         }
-        update_best_cover();
+        if(!update_best_cover()) {
+            no_improve++;
+        } else {
+            no_improve = 0;
+        }
         ctr++;
     }
 
