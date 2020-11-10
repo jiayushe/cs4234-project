@@ -274,14 +274,14 @@ ll check_cover() {
 }
 
 void update_best_cover() {
-    if(check_cover() == 1 && cost < best_cost) { // Optimally we don't want to check the cover here
+    if(cost < best_cost) { // Optimally we don't want to check the cover here
         best_cost = cost;
         best_cover = cover;
     }
 }
 
 int main() {
-    //fast();
+    fast();
     srand(time(NULL));
     cin >> N >> E;
     W.assign(N, -1);
@@ -339,9 +339,6 @@ int main() {
         b[i] = i;
     }
     get_optimal_vertices();
-    // trav(o, optimal_vertices) {
-    //     cout << o << endl;
-    // }
     rep(i, 0, times) {
         cover.assign(N, false);
         cost = 0;
@@ -402,7 +399,7 @@ int main() {
 
     int ctr = 0;
     
-    while(((float(clock() - start) /  CLOCKS_PER_SEC) < 1.90)) {
+    while(((float(clock() - start) /  CLOCKS_PER_SEC) < 1.99)) {
         // Choose vertices to remove
         int w = choose_min_loss_vertex();
         if(w == -1) {
@@ -462,6 +459,4 @@ int main() {
     }
     cout << endl;
     //cout << float(clock() - start ) /  CLOCKS_PER_SEC;
-        
-
 }
