@@ -132,7 +132,7 @@ inline vi perturb(vi& tour) {
     return newTour;
 }
 
-void twoOpt(vi& tour, vi& pos, ll& maxD) {
+void twoOpt(vi& tour, vi& pos, ll& maxD, const chrono::time_point<chrono::high_resolution_clock>& deadline) {
     int p, q, r, s, pi, qi, ri, si;
     bool opt = false;
     while(!opt) {
@@ -157,6 +157,37 @@ void twoOpt(vi& tour, vi& pos, ll& maxD) {
     }
 }
 
+void twoHalfOpt(vi& tour, vi& pos, ll& maxD, const chrono::time_point<chrono::high_resolution_clock>& deadline) {
+    int p, q, r, s, t, pi, qi, ri, si, ti;
+    bool opt = false;
+    while(!opt) {
+        opt = true;
+        for(pi = 0; pi < n - 2; pi++) {
+            for(si = pi + 3; si < n - 1; si++) {
+                if(chrono::high_resolution_clock::now() > deadline) return;
+                qi = (pi + 1) % n, ri = (pi + 2) % n;
+                p = tour[pi], q = tour[qi], r = tour[ri];
+                ti = (si + 1) % n;
+                s = tour[si], t = tour[ti];
+                if (d[p][r] + d[s][q] + d[q][t] < d[p][q] + d[q][r] + d[s][t]) {
+                    vi newTour;
+                    newTour.insert(newTour.end(), tour.begin(), tour.begin() + pi + 1);
+                    newTour.insert(newTour.end(), tour.begin() + pi + 2, tour.begin() + si + 1);
+                    newTour.insert(newTour.end(), tour[pi + 1]);
+                    newTour.insert(newTour.end(), tour.begin() + si + 1, tour.end());
+                    for(int c = qi; c <= si; c++) {
+                        pos[newTour[c]] = c;
+                    }
+                    tour = newTour;
+                    maxD = getMax(vll{maxD, d[p][r], d[s][q], d[q][t]});
+                    opt = false;
+                    break;
+                }
+            }
+        }
+    }
+}
+
 void threeOpt(vi& tour, vi& pos, ll& maxD, const chrono::time_point<chrono::high_resolution_clock>& deadline) {
     int p, q, r, s, t, u, pi, qi, ri, si, ti, ui;
     bool opt = false;
@@ -164,10 +195,10 @@ void threeOpt(vi& tour, vi& pos, ll& maxD, const chrono::time_point<chrono::high
         opt = true;
         bool curOpt = true;
         for(pi = 0; pi < n; pi++) { // iterate all pq
+            if(chrono::high_resolution_clock::now() > deadline) return;
             curOpt = true;
             qi = (pi + 1) % n;
             p = tour[pi], q = tour[qi];
-            if(chrono::high_resolution_clock::now() > deadline) return;
             for(int i = 0; curOpt && i < k; i++) { // iterate all rs
                 si = pos[adj[p][i]];
                 ri = (si + n - 1) % n;
@@ -221,29 +252,35 @@ vi approx(const chrono::time_point<chrono::high_resolution_clock>& deadline) {
         pos[tour[i]] = i;
         maxD = max(maxD, d[tour[i]][tour[(i + 1) % n]]);
     }
-    twoOpt(tour, pos, maxD);
+    twoOpt(tour, pos, maxD, deadline);
+    twoHalfOpt(tour, pos, maxD, deadline);
     threeOpt(tour, pos, maxD, deadline);
     chrono::milliseconds totalTime(0), averageTime(0);
     vi bestTour = tour;
     ll bestDist = totalDist(tour);
+    int stuck = 0;
     for(int i = 0; (chrono::high_resolution_clock::now() + max(chrono::milliseconds(50), 2 * averageTime)) < deadline; i++) {
         debug(bestDist);
         auto start = chrono::high_resolution_clock::now();
         tour = bestTour;
-        int seed = rand() % (n - n / 10);
-        shuffle(tour.begin() + seed, tour.begin() + seed + n / 10, rng);
-        // tour = perturb(tour);
+        int partition = stuck < 5 ? 20 : 10;
+        int seed = rand() % (n - n / partition);
+        shuffle(tour.begin() + seed, tour.begin() + seed + n / partition, rng);
         maxD = 0;
         for(int j = 0; j < n; j++) {
             pos[tour[j]] = j;
             maxD = max(maxD, d[tour[j]][tour[(j + 1) % n]]);
         }
-        twoOpt(tour, pos, maxD);
-        threeOpt(tour, pos, maxD, deadline);
+        twoOpt(tour, pos, maxD, chrono::high_resolution_clock::now() + chrono::milliseconds(30));
+        twoHalfOpt(tour, pos, maxD, chrono::high_resolution_clock::now() + chrono::milliseconds(20));
+        threeOpt(tour, pos, maxD, chrono::high_resolution_clock::now() + chrono::milliseconds(50));
         ll currDist = totalDist(tour);
         if(currDist < bestDist) {
             bestTour = tour;
             bestDist = currDist;
+            stuck = 0;
+        } else {
+            stuck++;
         }
         totalTime += chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - start);
         averageTime = totalTime / (i + 1);
@@ -291,7 +328,7 @@ int main() {
         reverse(all(res.se));
         for(auto i : res.se) cout<<i<<endl;
     } else {
-        vi res = approx(chrono::high_resolution_clock::now() + chrono::milliseconds(1900));
+        vi res = approx(chrono::high_resolution_clock::now() + chrono::milliseconds(1950));
         for(auto i : res) cout<<i<<endl;
     }
     
