@@ -53,7 +53,7 @@ struct point {
     }
 };
 
-int n, k = 20;
+int n, k = 15;
 ll minD = INFLL;
 vector<point> points;
 vvll d;
