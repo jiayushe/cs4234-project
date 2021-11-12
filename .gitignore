@@ -30,7 +30,9 @@
 *.exe
 *.out
 *.app
-tsp*
 
 # IDE
 .vscode
+
+# OSX
+.DS_Store
